@@ -16,4 +16,15 @@ type (
 		CreatedAt string  `json:"created_at"`
 		UpdatedAt string  `json:"updated_at"`
 	}
+
+	// SwaggerResponse represents a standard API response
+	SwaggerResponse struct {
+		Message string      `json:"message,omitempty"`
+		Data    interface{} `json:"data,omitempty"`
+	}
+
+	// ErrorResponse represents an error response
+	ErrorResponse struct {
+		Message string `json:"message"`
+	}
 )

@@ -15,9 +15,16 @@ import (
 	"github.com/Eursukkul/fiber-booking-system/usecase"
 	"github.com/Eursukkul/fiber-booking-system/utils"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/swagger"
-)
 
+	 _ "github.com/Eursukkul/fiber-booking-system/docs"
+)
+// @title Fiber Booking System API
+// @version 1.0
+// @description Booking system API with Fiber framework
+// @host localhost:3001
+// @BasePath /api
 func main() {
 	config, err := config.LoadConfig()
 	if err != nil {
@@ -25,6 +32,13 @@ func main() {
 	}
 
 	app := fiber.New()
+
+	//Allow all origins
+	app.Use(cors.New(cors.Config{
+        AllowOrigins: "*",                // Allow all origins
+        AllowHeaders: "Origin, Content-Type, Accept",
+        AllowMethods: "GET,POST,DELETE",
+    }))
 
 	loggerMiddleware := middleware.NewLoggerMiddleware()
 	// authMiddleware := middleware.NewAuthMiddleware()

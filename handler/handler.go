@@ -21,16 +21,15 @@ func NewBookingHandler(BookingUsecase usecase.BookingUsecase) *BookingHandler {
 	return &BookingHandler{BookingUsecase: BookingUsecase}
 }
 
-// CreateBooking 
+// CreateBooking godoc
 // @Summary Create a new booking
 // @Description Create a new booking with user_id, service_id, and price
 // @Tags bookings
-// @Accept  json
-// @Produce  json
-// @Param booking body dto.CreateBookingRequest true "Booking"
-// @Success 201 {object} dto.BookingResponse
-// @Failure 400 {object} fiber.Map
-// @Failure 500 {object} fiber.Map
+// @Accept json
+// @Produce json
+// @Param booking body dto.BookingRequest true "Booking Request"
+// @Success 201 {object} dto.SwaggerResponse{data=dto.BookingResponse}
+// @Failure 400 {object} dto.ErrorResponse
 // @Router /bookings [post]
 func (h *BookingHandler) CreateBooking(c *fiber.Ctx) error {
 	var req dto.BookingRequest
@@ -66,16 +65,15 @@ func (h *BookingHandler) CreateBooking(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(booking)
 }
 
-// GetBookingByID
-// @Summary Get booking by ID
-// @Description Get booking by ID
+// GetBookingByID godoc
+// @Summary Get a booking by ID
+// @Description Get booking details by ID
 // @Tags bookings
-// @Accept  json
-// @Produce  json
+// @Accept json
+// @Produce json
 // @Param id path int true "Booking ID"
-// @Success 200 {object} dto.BookingResponse
-// @Failure 400 {object} fiber.Map
-// @Failure 404 {object} fiber.Map
+// @Success 200 {object} dto.SwaggerResponse{data=dto.BookingResponse}
+// @Failure 404 {object} dto.ErrorResponse
 // @Router /bookings/{id} [get]
 func (h *BookingHandler) GetBookingByID(c *fiber.Ctx) error {
 	id, err := c.ParamsInt("id")
@@ -95,19 +93,19 @@ func (h *BookingHandler) GetBookingByID(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(booking)
 }
 
-// CancelBooking
-// @Summary Cancel a booking
-// @Description Cancel a booking by ID
+// GetAllBookings godoc
+// @Summary Get all bookings
+// @Description Get all bookings with optional sorting and filtering
 // @Tags bookings
-// @Accept  json
-// @Produce  json
-// @Param id path int true "Booking ID"
-// @Success 200 {object} fiber.Map
-// @Failure 400 {object} fiber.Map
-// @Failure 404 {object} fiber.Map
-// @Router /bookings/{id} [delete]
+// @Accept json
+// @Produce json
+// @Param sort query string false "Sort by (price or date)"
+// @Param high-value query bool false "Filter high value bookings"
+// @Success 200 {object} dto.SwaggerResponse{data=[]dto.BookingResponse}
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /bookings [get]
 func (h *BookingHandler) GetAllBookings(c *fiber.Ctx) error {
-	sortBy := c.Query("sort", "id")         
+	sortBy := c.Query("sort", "id")
 	highValue := c.Query("high-value")
 	bookings, err := h.BookingUsecase.GetAllBookings(sortBy, highValue)
 	if err != nil {
@@ -119,50 +117,47 @@ func (h *BookingHandler) GetAllBookings(c *fiber.Ctx) error {
 	return c.JSON(bookings)
 }
 
-// CancelBooking
+// CancelBooking godoc
 // @Summary Cancel a booking
-// @Description Cancel a booking by changing its status to 'canceled'
+// @Description Cancel an existing booking by ID
 // @Tags bookings
-// @Accept  json
-// @Produce  json
+// @Accept json
+// @Produce json
 // @Param id path int true "Booking ID"
-// @Success 204 "No Content"
-// @Failure 400 {object} fiber.Map
-// @Failure 403 {object} fiber.Map
-// @Failure 404 {object} fiber.Map
-// @Failure 500 {object} fiber.Map
+// @Success 200 {object} dto.SwaggerResponse
+// @Failure 400,404 {object} dto.ErrorResponse
 // @Router /bookings/{id} [delete]
 func (h *BookingHandler) CancelBooking(c *fiber.Ctx) error {
-    id, err := strconv.Atoi(c.Params("id"))
-    if err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "message": "Invalid booking ID",
-        })
-    }
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Invalid booking ID",
+		})
+	}
 
-    // ตรวจสอบสถานะก่อนยกเลิก
-    booking, err := h.BookingUsecase.GetBookingByID(id)
-    if err != nil {
-        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-            "message": "Booking not found",
-        })
-    }
+	// ตรวจสอบสถานะก่อนยกเลิก
+	booking, err := h.BookingUsecase.GetBookingByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Booking not found",
+		})
+	}
 
-    if booking.Status == "confirmed" {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "message": "Cannot cancel a confirmed booking",
-        })
-    }
+	if booking.Status == "confirmed" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Cannot cancel a confirmed booking",
+		})
+	}
 
-    // ยกเลิกการจอง
-    err = h.BookingUsecase.CancelBooking(id)
-    if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "message": err.Error(),
-        })
-    }
+	// ยกเลิกการจอง
+	err = h.BookingUsecase.CancelBooking(id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": err.Error(),
+		})
+	}
 
-    return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "message": "Booking canceled successfully",
-    })
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Booking canceled successfully",
+	})
 }

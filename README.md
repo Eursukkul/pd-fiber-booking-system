@@ -126,6 +126,9 @@ spd-fiber-booking-system/
    go get github.com/swaggo/swag/cmd/swag@latest
    go get github.com/stretchr/testify
    go get github.com/joho/godotenv
+   go get -u github.com/swaggo/swag/cmd/swag
+   go get -u github.com/swaggo/files
+   go get -u github.com/swaggo/swag
    ```
 
 4. **Create Project Structure**
@@ -184,7 +187,7 @@ The system uses **Swagger** for generating API documentation. The documentation 
 // @Tags bookings
 // @Accept  json
 // @Produce  json
-// @Param booking body dto.CreateBookingRequest true "Booking"
+// @Param booking body dto.BookingRequest true "Booking"
 // @Success 200 {object} dto.BookingResponse
 // @Router /bookings [post]
 func (h *BookingHandler) CreateBooking(c *fiber.Ctx) error {
