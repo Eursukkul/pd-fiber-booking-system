@@ -12,7 +12,15 @@ import (
 )
 
 type (
-	BookingUsecase interface{}
+	BookingUsecase interface{
+		CreateBooking(req dto.BookingRequest) (*dto.BookingResponse, error)
+		GetBookingByID(id int) (*dto.BookingResponse, error)
+		GetAllBookings(sortBy string, highValue string) ([]*dto.BookingResponse, error)
+		UpdateBooking(id int, status string) error
+		CancelBooking(id int) error
+		BackgroundTaskBooking(wg *sync.WaitGroup)
+		UpdateBookingStatus(id int, status string) error
+	}
 
 	bookingUsecase struct {
 		repo  repository.BookingRepository
@@ -29,61 +37,66 @@ func NewBookingUsecase(repo repository.BookingRepository, cache utils.Cache) Boo
 }
 
 // Create
-func (u *bookingUsecase) Create(req dto.BookingRequest) (*dto.BookingResponse, error) {
+func (u *bookingUsecase) CreateBooking(req dto.BookingRequest) (*dto.BookingResponse, error) {
 	booking := u.repo.Create(req)
 	u.cache.Set(booking.ID, booking)
 	return booking, nil
 }
 
 // Get booking by id
-func (u *bookingUsecase) GetByID(id int) (*dto.BookingResponse, error) {
-	return u.cache.Get(id)
-}
+func (u *bookingUsecase) GetBookingByID(id int) (*dto.BookingResponse, error) {
+    // try get data from cache
+    cachedBooking, err := u.cache.Get(id)
+    if err == nil {
+        return cachedBooking, nil
+    }
 
+	// get data from repository
+	booking, exists := u.repo.GetByID(id)
+	if !exists {
+		return nil, fmt.Errorf("booking not found")
+	}
+
+	// set data to cache
+	u.cache.Set(id, booking)
+
+    return booking, nil
+}
 // Get all bookings
-func (u *bookingUsecase) GetAll(sortBy string, highValue bool) ([]*dto.BookingResponse, error) {
-	bookings := u.repo.GetAll()
+func (u *bookingUsecase) GetAllBookings(sortParam, highValue string) ([]*dto.BookingResponse, error) {
+    var bookings []*dto.BookingResponse
 
-	var filteredBookings []*dto.BookingResponse
-	for _, booking := range bookings {
-		if highValue && booking.Price > 50000 {
-			continue
-		}
-		filteredBookings = append(filteredBookings, booking)
-	}
+    if highValue == "true" {
+        bookings = u.repo.GetHighValueBookings(50000)
+    } else {
+        bookings = u.repo.GetAll()
+    }
 
-	switch sortBy {
-	case "price":
-		sort.Slice(filteredBookings, func(i, j int) bool {
-			return filteredBookings[i].Price < filteredBookings[j].Price
-		})
-	case "date":
-		sort.Slice(filteredBookings, func(i, j int) bool {
-			timeI, err := time.Parse(time.RFC3339, filteredBookings[i].CreatedAt)
-			if err != nil {
-				return false
-			}
-			timeJ, err := time.Parse(time.RFC3339, filteredBookings[j].CreatedAt)
-			if err != nil {
-				return false
-			}
-			return timeI.Before(timeJ)
-		})
-	default:
-		sort.Slice(filteredBookings, func(i, j int) bool {
-			return filteredBookings[i].ID < filteredBookings[j].ID
-		})
-	}
-	return filteredBookings, nil
+    // เรียงลำดับ
+    switch sortParam {
+    case "price":
+        sort.Slice(bookings, func(i, j int) bool {
+            return bookings[i].Price < bookings[j].Price
+        })
+    case "date":
+        sort.Slice(bookings, func(i, j int) bool {
+            t1, _ := time.Parse(time.RFC3339, bookings[i].CreatedAt)
+            t2, _ := time.Parse(time.RFC3339, bookings[j].CreatedAt)
+            return t1.Before(t2)
+        })
+    }
+
+    return bookings, nil
 }
+
 
 // Update status booking
-func (u *bookingUsecase) Update(id int, status string) error {
+func (u *bookingUsecase) UpdateBooking(id int, status string) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	updated := u.repo.Update(id, status)
-	if !updated {
+	err := u.repo.UpdateBookingStatus(id, status)
+	if err != nil {
 		return fmt.Errorf("booking not found")
 	}
 
@@ -100,30 +113,21 @@ func (u *bookingUsecase) Update(id int, status string) error {
 }
 
 // Cancel booking
-func (u *bookingUsecase) Cancel(id int) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (u *bookingUsecase) CancelBooking(id int) error {
+    // change status to canceled
+    err := u.repo.UpdateBookingStatus(id, "canceled")
+    if err != nil {
+        return fmt.Errorf("failed to cancel booking")
+    }
 
-	booking, err := u.repo.GetByID(id)
-	if !err {
-		return fmt.Errorf("booking not found")
-	}
+    // delete from cache
+    u.cache.Delete(id)
 
-	if booking.Status == "confirmed" {
-		return fmt.Errorf("cannot cancel confirmed booking")
-	}
-
-	updated := u.repo.Update(id, "canceled")
-	if !updated {
-		return fmt.Errorf("failed to cancel booking")
-	}
-
-	u.cache.Delete(id)
-	return nil
+    return nil
 }
 
 // Background task for check expired booking
-func (u *bookingUsecase) BackgroundTask(wg *sync.WaitGroup) {
+func (u *bookingUsecase) BackgroundTaskBooking(wg *sync.WaitGroup) {
 	ticker := time.NewTicker(1 * time.Minute)
 	wg.Add(1)
 	go func() {
@@ -136,21 +140,21 @@ func (u *bookingUsecase) BackgroundTask(wg *sync.WaitGroup) {
 
 // checkExpiredBookings handles the expiration logic for pending bookings
 func (u *bookingUsecase) checkExpiredBookings() {
-	bookings := u.repo.GetAll()
-	for _, booking := range bookings {
-		if booking.Status != "pending" {
-			continue
-		}
+    bookings := u.repo.GetAll()
+    for _, booking := range bookings {
+        if booking.Status != "pending" {
+            continue
+        }
 
-		createdAt, err := time.Parse(time.RFC3339, booking.CreatedAt)
-		if err != nil {
-			continue
-		}
+        createdAt, err := time.Parse(time.RFC3339, booking.CreatedAt)
+        if err != nil {
+            continue
+        }
 
-		if time.Since(createdAt) > 5*time.Minute {
-			u.UpdateBookingStatus(booking.ID, "canceled")
-		}
-	}
+        if time.Since(createdAt) > 5*time.Minute {
+            u.UpdateBookingStatus(booking.ID, "canceled")
+        }
+    }
 }
 
 // Update booking status
@@ -159,8 +163,8 @@ func (u *bookingUsecase) UpdateBookingStatus(id int, status string) error {
 	defer u.mu.Unlock()
 
 	// Change status in Repository
-	updated := u.repo.Update(id, status)
-	if !updated {
+	err := u.repo.UpdateBookingStatus(id, status)
+	if err != nil {
 		return fmt.Errorf("failed to update booking status")
 	}
 

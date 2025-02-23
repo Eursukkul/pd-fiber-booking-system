@@ -125,6 +125,7 @@ spd-fiber-booking-system/
    go get github.com/gofiber/swagger
    go get github.com/swaggo/swag/cmd/swag@latest
    go get github.com/stretchr/testify
+   go get github.com/joho/godotenv
    ```
 
 4. **Create Project Structure**

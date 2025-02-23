@@ -1,11 +1,11 @@
 package repository
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/Eursukkul/fiber-booking-system/dto"
-
 )
 
 type (
@@ -13,13 +13,15 @@ type (
 		Create(req dto.BookingRequest) *dto.BookingResponse
 		GetByID(id int) (*dto.BookingResponse, bool)
 		GetAll() []*dto.BookingResponse
-		Update(id int, status string) bool
+		GetHighValueBookings(threshold float64) []*dto.BookingResponse
+		UpdateBookingStatus(id int, status string) error
 	}
 
 	MockBookingRepository struct {
 		bookings map[int]dto.BookingResponse
 		mu       sync.RWMutex
 	}
+
 )
 
 func NewMockBookingRepository() BookingRepository {
@@ -94,3 +96,31 @@ func (m *MockBookingRepository) Update(id int, status string) bool {
 	return true
 }
 
+// GetHighValueBookings get high value bookings
+func (m *MockBookingRepository) GetHighValueBookings(threshold float64) []*dto.BookingResponse {
+    m.mu.RLock()
+    defer m.mu.RUnlock()
+    var highValueBookings []*dto.BookingResponse
+    for _, booking := range m.bookings {
+        if booking.Price > threshold {
+            highValueBookings = append(highValueBookings, &booking)
+        }
+    }
+    return highValueBookings
+}
+
+// UpdateBookingStatus อัปเดตสถานะของ Booking ใน Repository
+func (m *MockBookingRepository) UpdateBookingStatus(id int, status string) error {
+    m.mu.Lock()
+    defer m.mu.Unlock()
+    booking, exists := m.bookings[id]
+    if !exists {
+        return fmt.Errorf("booking not found")
+    }
+    booking.Status = status
+    if status == "canceled" {
+        // เก็บข้อมูลไว้ใน Repository แต่เปลี่ยนสถานะ
+        m.bookings[id] = booking
+    }
+    return nil
+}
