@@ -16,9 +16,8 @@ mkdir -p models
 mkdir -p utils
 mkdir -p config
 mkdir -p tests
-touch go.mod
-touch go.sum
-touch README.md
+touch .gitignore
+touch .env
 
 spd-fiber-booking-system/
 ├── cmd/
