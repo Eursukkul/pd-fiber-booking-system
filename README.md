@@ -129,6 +129,9 @@ spd-fiber-booking-system/
    go get -u github.com/swaggo/swag/cmd/swag
    go get -u github.com/swaggo/files
    go get -u github.com/swaggo/swag
+   go get github.com/stretchr/testify/mock
+   go get github.com/stretchr/testify/assert
+   go install github.com/vektra/mockery/v2@latest
    ```
 
 4. **Create Project Structure**

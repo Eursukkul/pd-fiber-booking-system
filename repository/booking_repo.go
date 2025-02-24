@@ -109,7 +109,7 @@ func (m *MockBookingRepository) GetHighValueBookings(threshold float64) []*dto.B
     return highValueBookings
 }
 
-// UpdateBookingStatus อัปเดตสถานะของ Booking ใน Repository
+// UpdateBookingStatus update booking status
 func (m *MockBookingRepository) UpdateBookingStatus(id int, status string) error {
     m.mu.Lock()
     defer m.mu.Unlock()
