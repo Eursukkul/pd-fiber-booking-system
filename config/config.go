@@ -21,7 +21,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		Port:      getEnv("PORT", ":3001"),
+		Port:      getEnv("PORT", ":3000"),
 		JWTSecret: getEnv("JWT_SECRET", "your_default_jwt_secret"),
 		APIKey:    getEnv("API_KEY", "your_default_api_key"),
 	}, nil

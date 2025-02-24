@@ -23,7 +23,7 @@ import (
 // @title Fiber Booking System API
 // @version 1.0
 // @description Booking system API with Fiber framework
-// @host localhost:3001
+// @host localhost:3000
 // @BasePath /api
 func main() {
 	config, err := config.LoadConfig()
