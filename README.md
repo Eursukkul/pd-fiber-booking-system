@@ -310,3 +310,32 @@ func (c *InMemoryCache) Delete(id int) {
 หากคุณมีคำถามหรือข้อเสนอแนะเกี่ยวกับโปรเจคนี้ สามารถติดต่อได้ที่ [chalermphan.eur@gmail.com](chalermphan.eur@gmail.com)
 
 ---
+
+## 🔐 Environment Variables
+
+Create `.env` file in root directory:
+
+```env
+PORT=3000
+JWT_SECRET=your_jwt_secret
+API_KEY=your_api_key
+```
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/bookings | Create new booking |
+| GET | /api/bookings/:id | Get booking by ID |
+| GET | /api/bookings | Get all bookings |
+| DELETE | /api/bookings/:id | Cancel booking |
+```
+
+## ⚠️ Error Responses
+
+All errors follow this format:
+```json
+{
+    "message": "Error description"
+}
+```
