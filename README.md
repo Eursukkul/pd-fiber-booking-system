@@ -287,7 +287,6 @@ func (c *InMemoryCache) Delete(id int) {
 7. **Middleware:** handle middleware (logging, authentication)
 8. **Utils:** helper tools (caching, hashing)
 
-
 ## 🧙‍♂️ Additional Notes
 
 - **Mock Repository:** use for development and testing without connecting to real database
@@ -323,13 +322,14 @@ API_KEY=your_api_key
 
 ## 📡 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/bookings | Create new booking |
-| GET | /api/bookings/:id | Get booking by ID |
-| GET | /api/bookings | Get all bookings |
-| DELETE | /api/bookings/:id | Cancel booking |
-```
+| Method | Endpoint          | Description        |
+| ------ | ----------------- | ------------------ |
+| POST   | /api/bookings     | Create new booking |
+| GET    | /api/bookings/:id | Get booking by ID  |
+| GET    | /api/bookings     | Get all bookings   |
+| DELETE | /api/bookings/:id | Cancel booking     |
+
+````
 
 ## ⚠️ Error Responses
 
@@ -338,4 +338,4 @@ All errors follow this format:
 {
     "message": "Error description"
 }
-```
+````
